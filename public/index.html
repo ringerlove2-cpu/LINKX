@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Take Photo</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 30px auto;
+      padding: 20px;
+    }
+
+    video, canvas {
+      width: 100%;
+      border-radius: 12px;
+      background: #111;
+    }
+
+    button {
+      padding: 12px 18px;
+      margin: 8px 4px 8px 0;
+      border: 0;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    #start { background: #222; color: white; }
+    #capture { background: #008f68; color: white; }
+    #upload { background: #1769aa; color: white; }
+  </style>
+</head>
+
+<body>
+
+<h2>📷 Take a Photo</h2>
+
+<p>
+  Camera use karne ke liye <b>Enable Camera</b> dabayein aur browser permission allow karein.
+  Photo upload tabhi hogi jab aap <b>Upload Photo</b> dabayenge.
+</p>
+
+<video id="video" autoplay playsinline></video>
+<canvas id="canvas" hidden></canvas>
+
+<br>
+
+<button id="start">Enable Camera</button>
+<button id="capture" disabled>Take Photo</button>
+<button id="upload" disabled>Upload Photo</button>
+
+<p id="status"></p>
+
+<script>
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+
+const startBtn = document.getElementById("start");
+const captureBtn = document.getElementById("capture");
+const uploadBtn = document.getElementById("upload");
+
+const status = document.getElementById("status");
+
+let stream = null;
+let photoBlob = null;
+
+
+// Enable camera
+startBtn.onclick = async () => {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: false
+    });
+
+    video.srcObject = stream;
+
+    captureBtn.disabled = false;
+    status.textContent = "Camera enabled. Take a photo.";
+
+  } catch (error) {
+    status.textContent =
+      "Camera permission denied or camera unavailable.";
+  }
+};
+
+
+// Capture photo
+captureBtn.onclick = () => {
+
+  if (!stream) return;
+
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+
+  const ctx = canvas.getContext("2d");
+
+  ctx.drawImage(
+    video,
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
+
+  canvas.toBlob((blob) => {
+
+    photoBlob = blob;
+
+    uploadBtn.disabled = false;
+
+    status.textContent =
+      "Photo captured. Click Upload Photo.";
+
+  }, "image/jpeg", 0.9);
+};
+
+
+// Upload photo
+uploadBtn.onclick = async () => {
+
+  if (!photoBlob) return;
+
+  uploadBtn.disabled = true;
+
+  status.textContent = "Uploading...";
+
+  const formData = new FormData();
+
+  formData.append(
+    "photo",
+    photoBlob,
+    "photo.jpg"
+  );
+
+  try {
+
+    const response = await fetch("/upload", {
+      method: "POST",
+      body: formData
+    });
+
+    const result = await response.json();
+
+    if (result.ok) {
+      status.textContent = "Photo uploaded successfully.";
+    } else {
+      status.textContent = "Upload failed.";
+    }
+
+  } catch (error) {
+
+    status.textContent =
+      "Upload failed. Check your internet connection.";
+
+  } finally {
+
+    uploadBtn.disabled = false;
+
+  }
+};
+</script>
+
+</body>
+</html>
