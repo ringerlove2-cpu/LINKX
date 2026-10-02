@@ -1,0 +1,6 @@
+consent-camera/
+├── server.js
+├── package.json
+├── uploads/
+└── public/
+    └── index.html
